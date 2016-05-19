@@ -133,28 +133,29 @@ function convertVertices(tree, id){
 function subdivide(tree){
     var newVerts = [];
     var newTris = [];
+
+    //var map = {};
+
     var t = 0;
-    for(var i = 0; i < tree.tris.length; i+=3){
+
+    for(var i = 0; i < tree.tris.length; i+=6){
         var v0 = tree.verts[tree.tris[i]];
         var v1 = tree.verts[tree.tris[i+1]];
         var v2 = tree.verts[tree.tris[i+2]];
+        var v3 = tree.verts[tree.tris[i+4]];
 
         var m01 = vec3.scale(vec3.add(vec3.create(v0),v1), 0.5);
         var m12 = vec3.scale(vec3.add(vec3.create(v1),v2), 0.5);
+        var m23 = vec3.scale(vec3.add(vec3.create(v2),v3), 0.5);
+        var m30 = vec3.scale(vec3.add(vec3.create(v3),v0), 0.5);
         var m20 = vec3.scale(vec3.add(vec3.create(v2),v0), 0.5);
 
-        // can experiment with different orderings
-        // newVerts.push(v0, m01, m20,
-        //               m01, v1, m12,
-        //               m20, m12, v2,
-        //               m20, m01, m12);
+        newVerts.push(v0,m01,m20,m20,m30,v0,
+                      m01,v1,m12,m12,m20,m01,
+                      m20,m12,v2,v2,m23,m20,
+                      m30,m20,m23,m23,v3,m30);
 
-        newVerts.push(v0, m01, m20,
-                      m20, m01, v1,
-                      v1, m12, m20,
-                      m20, m12, v2);
-
-        for(var j = 0; j < 12; ++j){
+        for(var j = 0; j < 24; ++j){
             newTris.push(t++);
         }
     }

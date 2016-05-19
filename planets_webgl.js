@@ -66,8 +66,13 @@ function setUniforms() {
     gl.uniform3fv(shaderProgram.lightPosUniform, lightPos);
 }
 
-var rotX = 0.0;
-var rotY = 0.0;
+var rotateLight = false;
+var rotatePlanet = false;
+var lightRotSpeed = 60.0;
+var planetRotSpeed = 60.0;
+var lightRot = 0.0;
+var planetRot = 0.0;
+
 var drawMode;
 function drawScene() {
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -77,24 +82,34 @@ function drawScene() {
 
     mat4.identity(lightMatrix);
     mat4.translate(lightMatrix, [0.0, 0.5, -10.0]);
+    mat4.rotateY(lightMatrix, lightRot);
 
     lightPos.set([0.0, 2.5, 3.0]);
     mat4.multiplyVec3(lightMatrix, lightPos);
 
     mat4.identity(mvMatrix);
     mat4.translate(mvMatrix, [0.0, 0.0, -10.0]);
-    rotY += 0.005;
-    rotX += 0.0035;
-    mat4.rotateY(mvMatrix, rotY);
-    mat4.rotateX(mvMatrix, rotX);
+    mat4.rotateY(mvMatrix, planetRot);
 
     setUniforms();
 
     drawPlanet();
 }
 
+var lastTime = 0;
 function tick() {
     requestAnimationFrame(tick);
+
+    var timeNow = new Date().getTime();
+    if ( lastTime != 0 ) {
+      var elapsed = timeNow - lastTime;
+      if ( rotatePlanet )
+        planetRot += planetRotSpeed*0.0175*elapsed/1000.0;
+      if ( rotateLight )
+        lightRot += lightRotSpeed*0.0175*elapsed/1000.0;
+    }
+    lastTime = timeNow;   
+
 
     drawScene();
 }
@@ -109,7 +124,7 @@ function webGLStart() {
 
     gl.clearColor(0.3, 0.3, 0.3, 1.0);
     gl.enable(gl.DEPTH_TEST);
-    gl.disable(gl.CULL_FACE);   // should enable later
+    gl.enable(gl.CULL_FACE);
     drawMode = 0;
 
     tick();

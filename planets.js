@@ -46,6 +46,26 @@ function changePlanetType(value){
     }
 }
 
+function setLightRotating(value){
+    rotateLight = value;
+}
+
+function setPlanetRotating(value){
+    rotatePlanet = value;
+}
+
+function updateSliderLight(value){
+    value *= 10.0;
+    $("#sliderAmountLight").html(value);
+    lightRotSpeed = value;
+}
+
+function updateSliderPlanet(value){
+    value *= 10.0;
+    $("#sliderAmountPlanet").html(value);
+    planetRotSpeed = value;
+}
+
 function changeMode(value) {
     drawMode = parseInt(value, 10);
 }
