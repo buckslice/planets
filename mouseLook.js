@@ -7,6 +7,9 @@ mouseLook = function ( camera ) {
     var leftDown = false;
     var rightDown = false;
 
+    var lookSpeed = 0.002;
+    var moveSpeed = 0.002;
+
     camera.rotation.set( 0, 0, 0 );
     camera.position.set( 0, 0, 0 );
 
@@ -75,10 +78,10 @@ mouseLook = function ( camera ) {
         var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
         var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
 
-        camera.rotation.x -= movementY * 0.002;
+        camera.rotation.x -= movementY * lookSpeed;
         camera.rotation.x = Math.max( - PI_2, Math.min( PI_2, camera.rotation.x ) );
 
-        yawObject.rotation.y -= movementX * 0.002;
+        yawObject.rotation.y -= movementX * lookSpeed;
 
     };
 
@@ -115,7 +118,11 @@ mouseLook = function ( camera ) {
         var mouseClick = 0;
         if(leftDown) mouseClick++;
         if(rightDown) mouseClick--;
-        var dir = new THREE.Vector3(0,0,-mouseClick*delta);
+
+        var distanceToOrigin = yawObject.position.length();
+        var speed = delta * distanceToOrigin / 5.0;
+        var dir = new THREE.Vector3(0,0,-mouseClick*speed);
+        
         dir.applyQuaternion(camera.getWorldQuaternion());
         yawObject.position.add(dir);
     }

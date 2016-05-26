@@ -1,6 +1,6 @@
 
 var radius = 2.0;
-var numSubdivisions = 4;
+var numSubdivisions = 8;
 
 class QuadTree {
 
@@ -21,9 +21,19 @@ class QuadTree {
         var normals = new Float32Array( triangles * 3 * 3 );
         var colors = new Float32Array( triangles * 3 * 3 );
 
-        var a = new THREE.Vector3();
-        var b = new THREE.Vector3();
+        var norm = new THREE.Vector3();
+        var norm2 = new THREE.Vector3();
         var color = new THREE.Color();
+        var color2 = new THREE.Color();
+
+        var grad = [.70,new THREE.Color(1.0,1.0,1.0),   // peaks
+                    .60,new THREE.Color(0.4,0.4,0.3),   // mountains
+                    .35,new THREE.Color(0.0,1.0,0.0),   // grass
+                    .27,new THREE.Color(0.8,0.8,0.5),   // coast
+                    .20,new THREE.Color(0.0,0.9,0.9),   // shallows
+                    0.0,new THREE.Color(0.0,0.0,1.0),   // ocean
+                    -.6,new THREE.Color(0.0,0.0,0.3)];  // deep ocean
+
         var len = this.verts.length;
         for(var i = 0; i < len; i+=3){
             var v1 = this.verts[i];
@@ -49,40 +59,50 @@ class QuadTree {
             positions[j+8] = v3.z;
 
             // calculate the normal of this triangle
-            a.subVectors(v1,v2);
-            b.subVectors(v1,v3);
-            a.cross(b);
-            a.normalize();
+            norm.subVectors(v1,v2);
+            norm2.subVectors(v1,v3);
+            norm.cross(norm2);
+            norm.normalize();
 
-            normals[j] = a.x;
-            normals[j+1] = a.y;
-            normals[j+2] = a.z;
+            normals[j] = norm.x;
+            normals[j+1] = norm.y;
+            normals[j+2] = norm.z;
 
-            normals[j+3] = a.x;
-            normals[j+4] = a.y;
-            normals[j+5] = a.z;
+            normals[j+3] = norm.x;
+            normals[j+4] = norm.y;
+            normals[j+5] = norm.z;
 
-            normals[j+6] = a.x;
-            normals[j+7] = a.y;
-            normals[j+8] = a.z;
+            normals[j+6] = norm.x;
+            normals[j+7] = norm.y;
+            normals[j+8] = norm.z;
 
             // calculate color
-            color.setRGB(Math.random(), Math.random(), Math.random());
+            //color.setRGB(Math.random(), Math.random(), Math.random());
             //color.setRGB(id/6, 0.0, 1-id/6);
             //color.setRGB(Math.floor(i / len * 4) / 4, 0, 0);    // how splitting will work
             //color.setRGB(i / len, 0, 0);
 
-            colors[j] = color.r;
-            colors[j+1] = color.g;
-            colors[j+2] = color.b;
+            var vecs = [v1,v2,v3];
+            for(var k = 0; k < 3; k++){
+                var v = vecs[k];
+                var n = noise.fractal3(v.x,v.y,v.z, 5, 1);
+                // blend color based on noise and grad
+                for(var q = 0; q < grad.length; q+=2){
+                    if(n > grad[q]){
+                        color.set(grad[q+1]);
+                        if(q > 0){
+                            color2.set(grad[q-1]);
+                            color.lerp(color2, noise.cblend(n, grad[q], grad[q-2]));
+                        }
+                        break;
+                    }
+                    color.set(grad[grad.length-1]);
+                }
 
-            colors[j+3] = color.r;
-            colors[j+4] = color.g;
-            colors[j+5] = color.b;
-
-            colors[j+6] = color.r;
-            colors[j+7] = color.g;
-            colors[j+8] = color.b;
+                colors[j+k*3] = color.r;
+                colors[j+k*3+1] = color.g;
+                colors[j+k*3+2] = color.b;
+            }
         }
 
         geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
@@ -109,7 +129,6 @@ class QuadTree {
 
     }
 }
-
 
 var roots = [];
 
@@ -162,6 +181,8 @@ function subdivide(tree){
 }
 
 function initPlanet() {
+    noise.seed(Math.random());
+
     // 0 -- 3
     // |    |   tl bl br tr
     // 1 -- 2
@@ -189,5 +210,48 @@ function initPlanet() {
 
         roots.push(qt);
     }
+
+    // generate star field
+    var numStars = 10000;
+    var stargeo = new THREE.BufferGeometry();
+    var positions = new Float32Array(numStars*3);
+    var colors = new Float32Array(numStars*3);
+
+    var color = new THREE.Color();
+
+    for(var i = 0; i < positions.length; i+=3){
+        // get random spherical coordinate
+        var theta = Math.random() * Math.PI * 2;
+        var phi = Math.acos(2 * Math.random() - 1);
+        var r = Math.random() * 500 + 500;
+        // convert to cartesian
+        var x = r * Math.cos(theta) * Math.sin(phi);
+        var y = r * Math.sin(theta) * Math.sin(phi);
+        var z = r * Math.cos(phi);
+
+        positions[i] = x;
+        positions[i+1] = y;
+        positions[i+2] = z;
+
+        // generate random star color
+        var r = Math.random()*.2 + .8;
+        var b = Math.random()*.2 + .8;
+        var g = Math.min(r,b);
+        color.setRGB(r,g,b);
+
+        colors[i] = color.r;
+        colors[i+1] = color.g;
+        colors[i+2] = color.b;
+    }
+
+    stargeo.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+    stargeo.addAttribute('color', new THREE.BufferAttribute(colors,3));
+
+    stargeo.computeBoundingSphere();
+
+    var starmat = new THREE.PointsMaterial({size:1, vertexColors: THREE.VertexColors});
+    var stars = new THREE.Points(stargeo, starmat);
+
+    scene.add(stars);
 
 }

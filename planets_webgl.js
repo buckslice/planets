@@ -11,7 +11,7 @@ var stats;
 
 function webGLStart(){
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
+    camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.01, 1000000 );
 
     controls = new mouseLook(camera);
     var obj = controls.getObject();
@@ -20,8 +20,11 @@ function webGLStart(){
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.logarithmicDepthBuffer = true;
     //renderer.setClearColor(0x0000ff);     // setting to blue for testing
     document.body.appendChild( renderer.domElement );
+
+    window.addEventListener('resize', onWindowResize, false);
 
     // add a point light for sun
     var sun = new THREE.PointLight(0xffffff, 0.8, 0);
@@ -57,4 +60,10 @@ function render() {
     controls.update(delta);
 
     stats.update();
+}
+
+function onWindowResize(){
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize( window.innerWidth, window.innerHeight );
 }
