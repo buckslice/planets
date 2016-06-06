@@ -16,7 +16,10 @@ mouseLook = function ( camera ) {
     var yawObject = new THREE.Object3D();
     yawObject.add( camera );
 
-    var PI_2 = Math.PI / 2;
+    var mainObject = new THREE.Object3D();
+    mainObject.add(yawObject);
+
+    var PI_2 = Math.PI / 2 - .1;
 
     var blocker = document.getElementById( 'blocker' );
     var instructions = document.getElementById( 'instructions' );
@@ -101,30 +104,48 @@ mouseLook = function ( camera ) {
         }
     }
 
+    var onKeyDown = function (event){
+        if(event.keyCode == 17){  // control key
+            planetMat.wireframe = !planetMat.wireframe;
+        }
+    }
+
     this.dispose = function() {
         document.removeEventListener( 'mousemove', onMouseMove, false );
         document.removeEventListener( 'mousedown', onMouseDown, false);
         document.removeEventListener( 'mouseup', onMouseUp, false);
+        window.removeEventListener('keydown', onKeyDown, false);
     };
     document.addEventListener( 'mousemove', onMouseMove, false );
     document.addEventListener( 'mousedown', onMouseDown, false);
     document.addEventListener( 'mouseup', onMouseUp, false);
+    window.addEventListener('keydown', onKeyDown, false);
 
     this.getObject = function () {
-        return yawObject;
+        return mainObject;
     };
 
+    var t = 0;
     this.update = function(delta){
         var mouseClick = 0;
         if(leftDown) mouseClick++;
         if(rightDown) mouseClick--;
 
-        var distanceToOrigin = yawObject.position.length();
+        var distanceToOrigin = mainObject.position.length();
         var speed = delta * distanceToOrigin / 5.0;
         var dir = new THREE.Vector3(0,0,-mouseClick*speed);
-        
         dir.applyQuaternion(camera.getWorldQuaternion());
-        yawObject.position.add(dir);
+        mainObject.position.add(dir);
+
+        // var up = new THREE.Vector3(0,1,0);  // normal up
+        // var newUp = new THREE.Vector3();
+        // newUp.copy(mainObject.position);
+        // newUp.normalize();
+
+        // var quat = new THREE.Quaternion().setFromUnitVectors(up, newUp);
+        // mainObject.quaternion.copy(quat);
+        //console.log(mainObject.quaternion);
+        
     }
 
 };

@@ -1,25 +1,60 @@
 
 var radius = 2.0;
-var numSubdivisions = 8;
+var numSubdivisions = 4;
+var maxDepth = 6;
+
+var splitList = [];
 
 class QuadTree {
 
     constructor(depth) {
         this.depth = depth;
-        this.children = [];
+        this.children = [];     // take this out later try
+        this.neighbors = [];
         this.hasChildren = false;
         this.verts = [];
         this.mesh;
+        this.onSplitList = false;
+        this.splitLevel = Math.pow(2, maxDepth - this.depth + 4) / Math.pow(2,maxDepth);
+        this.splitLevel *= this.splitLevel;
     }
+
+    subdivide(){
+        var newVerts = [];
+        //var map = {};
+
+        for(var i = 0; i < this.verts.length; i+=6){
+            var v0 = this.verts[i];
+            var v1 = this.verts[i+1];
+            var v2 = this.verts[i+2];
+            var v3 = this.verts[i+4];
+
+            var m01 = new THREE.Vector3().addVectors(v0,v1).multiplyScalar(0.5);
+            var m12 = new THREE.Vector3().addVectors(v1,v2).multiplyScalar(0.5);
+            var m23 = new THREE.Vector3().addVectors(v2,v3).multiplyScalar(0.5);
+            var m30 = new THREE.Vector3().addVectors(v3,v0).multiplyScalar(0.5);
+            var m20 = new THREE.Vector3().addVectors(v2,v0).multiplyScalar(0.5);
+
+            newVerts.push(v0,m01,m20,m20,m30,v0,
+                          m01,v1,m12,m12,m20,m01,
+                          m20,m12,v2,v2,m23,m20,
+                          m30,m20,m23,m23,v3,m30);
+
+        }
+
+        this.verts = newVerts;
+    }
+
 
     buildMesh() {
         var geometry = new THREE.BufferGeometry();
 
         var triangles = 2 * Math.pow(4, numSubdivisions);
 
-        var positions = new Float32Array( triangles * 3 * 3 );
-        var normals = new Float32Array( triangles * 3 * 3 );
-        var colors = new Float32Array( triangles * 3 * 3 );
+        var numFloats = triangles * 3 * 3;
+        var positions = new Float32Array( numFloats);
+        var normals = new Float32Array( numFloats );
+        var colors = new Float32Array( numFloats );
 
         var norm = new THREE.Vector3();
         var norm2 = new THREE.Vector3();
@@ -30,33 +65,76 @@ class QuadTree {
                     .60,new THREE.Color(0.4,0.4,0.3),   // mountains
                     .35,new THREE.Color(0.0,1.0,0.0),   // grass
                     .27,new THREE.Color(0.8,0.8,0.5),   // coast
-                    .20,new THREE.Color(0.0,0.9,0.9),   // shallows
-                    0.0,new THREE.Color(0.0,0.0,1.0),   // ocean
+                    .26,new THREE.Color(0.0,0.9,0.9),   // shallows
+                    .10,new THREE.Color(0.0,0.0,1.0),   // ocean
                     -.6,new THREE.Color(0.0,0.0,0.3)];  // deep ocean
 
         var len = this.verts.length;
-        for(var i = 0; i < len; i+=3){
-            var v1 = this.verts[i];
-            var v2 = this.verts[i+1];
-            var v3 = this.verts[i+2];
+        for(var i = 0; i < len; ++i){
+            var v = toSphere(this.verts[i]);
+            var n = noise.fractal3(v.x,v.y,v.z, 7, 1.5);
+            // blend color based on noise and grad
+            for(var q = 0; q < grad.length; q+=2){
+                if(n > grad[q]){
+                    color.set(grad[q+1]);
+                    if(q > 0){
+                        color2.set(grad[q-1]);
+                        color.lerp(color2, noise.cblend(n, grad[q], grad[q-2]));
+                    }
+                    break;
+                }
+                color.set(grad[grad.length-1]);
+            }
 
-            // convert to sphere of given radius
-            v1 = toSphere(v1, radius);
-            v2 = toSphere(v2, radius);
-            v3 = toSphere(v3, radius);
+            // switch(Math.floor(i / len * 4)){
+            //     case 0:
+            //     color.setRGB(1,0,0);
+            //     break;
+            //     case 1:
+            //     color.setRGB(1,1,0);
+            //     break;
+            //     case 2:
+            //     color.setRGB(0,1,0);
+            //     break;
+            //     case 3:
+            //     color.setRGB(0,0,1);
+            //     break;
+            //     default:
+            //     color.setRGB(1,1,1);
+            //     break;
+            // }
+            //color.setRGB(Math.floor(i / len * 4) / 4, 0, 0);    // how splitting will work
+            var j = i*3;
+            colors[j] = color.r;
+            colors[j+1] = color.g;
+            colors[j+2] = color.b;
 
-            var j = i * 3;
-            positions[j] = v1.x;
-            positions[j+1] = v1.y;
-            positions[j+2] = v1.z;
+            // make land flat to look like ocean
+            //var t = noise.cubic(noise.cblend(n,.27,.35));
+            //n = noise.lerp(.27, n-.08, t);
+            if(n < .27){
+                n = .27;
+            }
 
-            positions[j+3] = v2.x;
-            positions[j+4] = v2.y;
-            positions[j+5] = v2.z;
+            // scale position a bit by the noise
+            v.addScaledVector(v, n * 0.1);
+            // scale vertex up based on radius of planet
+            v.multiplyScalar(radius);
 
-            positions[j+6] = v3.x;
-            positions[j+7] = v3.y;
-            positions[j+8] = v3.z;
+            positions[j] = v.x;
+            positions[j+1] = v.y;
+            positions[j+2] = v.z;
+
+            // should add this to save parents generated stuff
+            //this.verts[i] = {position: new THREE.Vector3(v.x,v.y,v.z), 
+                //color: new THREE.Vector3(color.r, color.g, color.b)};
+        }
+
+        // calculate normals
+        for(var i = 0; i < numFloats; i+=9){
+            var v1 = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]);
+            var v2 = new THREE.Vector3(positions[i+3], positions[i+4], positions[i+5]);
+            var v3 = new THREE.Vector3(positions[i+6], positions[i+7], positions[i+8]);
 
             // calculate the normal of this triangle
             norm.subVectors(v1,v2);
@@ -64,76 +142,94 @@ class QuadTree {
             norm.cross(norm2);
             norm.normalize();
 
-            normals[j] = norm.x;
-            normals[j+1] = norm.y;
-            normals[j+2] = norm.z;
+            normals[i] = norm.x;
+            normals[i+1] = norm.y;
+            normals[i+2] = norm.z;
 
-            normals[j+3] = norm.x;
-            normals[j+4] = norm.y;
-            normals[j+5] = norm.z;
+            normals[i+3] = norm.x;
+            normals[i+4] = norm.y;
+            normals[i+5] = norm.z;
 
-            normals[j+6] = norm.x;
-            normals[j+7] = norm.y;
-            normals[j+8] = norm.z;
-
-            // calculate color
-            //color.setRGB(Math.random(), Math.random(), Math.random());
-            //color.setRGB(id/6, 0.0, 1-id/6);
-            //color.setRGB(Math.floor(i / len * 4) / 4, 0, 0);    // how splitting will work
-            //color.setRGB(i / len, 0, 0);
-
-            var vecs = [v1,v2,v3];
-            for(var k = 0; k < 3; k++){
-                var v = vecs[k];
-                var n = noise.fractal3(v.x,v.y,v.z, 5, 1);
-                // blend color based on noise and grad
-                for(var q = 0; q < grad.length; q+=2){
-                    if(n > grad[q]){
-                        color.set(grad[q+1]);
-                        if(q > 0){
-                            color2.set(grad[q-1]);
-                            color.lerp(color2, noise.cblend(n, grad[q], grad[q-2]));
-                        }
-                        break;
-                    }
-                    color.set(grad[grad.length-1]);
-                }
-
-                colors[j+k*3] = color.r;
-                colors[j+k*3+1] = color.g;
-                colors[j+k*3+2] = color.b;
-            }
+            normals[i+6] = norm.x;
+            normals[i+7] = norm.y;
+            normals[i+8] = norm.z;
         }
 
         geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
         geometry.addAttribute( 'normal', new THREE.BufferAttribute( normals, 3 ) );
         geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
 
-        geometry.computeBoundingSphere();
+        geometry.computeBoundingBox();
+        this.center = new THREE.Vector3();
+        this.center.subVectors(geometry.boundingBox.max, geometry.boundingBox.min);
+        this.center.multiplyScalar(0.5).add(geometry.boundingBox.min);
 
-        var mesh = new THREE.Mesh(geometry, planetMat);
+        this.mesh = new THREE.Mesh(geometry, planetMat);
 
-        scene.add(mesh);
+        scene.add(this.mesh);
     }
 
-
     update() {
+        if(this.shouldMerge()){
+            this.merge();
+        }else if(this.shouldSplit() && !this.onSplitList){
+            splitList.push(this);
+            this.onSplitList = true;
+        }
 
+        if(this.hasChildren){
+            for(var i = 0; i < 4; ++i){
+                this.children[i].update();
+            }
+        }
+    }
+
+    getDistanceToCamera(){
+        return new THREE.Vector3().subVectors(this.center, camWorldPos).lengthSq();
+    }
+
+    shouldMerge(){
+        return this.hasChildren && this.getDistanceToCamera() > this.splitLevel;
+    }
+
+    shouldSplit(){
+        if(this.hasChildren || this.depth >= maxDepth){
+            return false;
+        }
+        return this.getDistanceToCamera() < this.splitLevel;
     }
 
     split() {
-
+        var len = this.verts.length;
+        for(var i = 0; i < 4; ++i){
+            var child = new QuadTree(this.depth + 1);
+            for(var j = i*len/4; j < (i+1)*len/4; ++j){
+                child.verts.push(this.verts[j]);
+            }
+            child.subdivide();
+            child.buildMesh();
+            this.children.push(child);
+        }
+        this.hasChildren = true;
+        this.mesh.visible = false;
     }
 
     merge() {
-
+        for(var i = 0; i < 4; ++i){
+            scene.remove(this.children[i].mesh);
+            this.children[i].mesh.geometry.dispose();
+            delete(this.children[i]);
+        }
+        this.children = [];
+        this.hasChildren = false;
+        this.mesh.visible = true;
     }
 }
 
 var roots = [];
 
 //http://catlikecoding.com/unity/tutorials/cube-sphere/
-function toSphere(v, radius){
+function toSphere(v){
     var x2 = v.x*v.x;
     var y2 = v.y*v.y;
     var z2 = v.z*v.z;
@@ -143,41 +239,24 @@ function toSphere(v, radius){
     var sz = v.z*Math.sqrt(1-x2/2-y2/2+x2*y2/3);
 
     var s = new THREE.Vector3(sx,sy,sz);
-    s.multiplyScalar(radius);
     return s;
 }
 
-// subdivides quadtree by one level
-function subdivide(tree){
-    var newVerts = [];
-    //var map = {};
-
-    for(var i = 0; i < tree.verts.length; i+=6){
-        var v0 = tree.verts[i];
-        var v1 = tree.verts[i+1];
-        var v2 = tree.verts[i+2];
-        var v3 = tree.verts[i+4];
-
-        var m01 = new THREE.Vector3();
-        var m12 = new THREE.Vector3();
-        var m23 = new THREE.Vector3();
-        var m30 = new THREE.Vector3();
-        var m20 = new THREE.Vector3();
-
-        m01.addVectors(v0,v1).multiplyScalar(0.5);
-        m12.addVectors(v1,v2).multiplyScalar(0.5);
-        m23.addVectors(v2,v3).multiplyScalar(0.5);
-        m30.addVectors(v3,v0).multiplyScalar(0.5);
-        m20.addVectors(v2,v0).multiplyScalar(0.5);
-
-        newVerts.push(v0,m01,m20,m20,m30,v0,
-                      m01,v1,m12,m12,m20,m01,
-                      m20,m12,v2,v2,m23,m20,
-                      m30,m20,m23,m23,v3,m30);
-
+function updatePlanet(){
+    for(var i = 0; i < 6; ++i){
+        roots[i].update();
     }
+    var splits = 0;
+    while(splits < 1 && splitList.length > 0){
+        var qt = splitList[0];
+        splitList.shift();  // removes first
 
-    tree.verts = newVerts;
+        qt.onSplitList = false;
+        if(qt.shouldSplit()){
+            qt.split();
+            splits++;
+        }
+    }
 }
 
 function initPlanet() {
@@ -203,7 +282,7 @@ function initPlanet() {
         }
 
         for(var j = 0; j < numSubdivisions; ++j){
-            subdivide(qt);
+            qt.subdivide();
         }
 
         qt.buildMesh();

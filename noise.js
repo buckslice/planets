@@ -264,6 +264,14 @@
     return Math.max(0, Math.min((x-low)/(high-low), 1));
   };
 
+  module.cubic = function(x){
+    return x*x*x;
+  }
+
+  module.lerp = function(a,b,t){
+    return a + (b-a)*t;
+  }
+
   // ##### Perlin noise stuff
 
   function fade(t) {

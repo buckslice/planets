@@ -1,6 +1,7 @@
            
 var scene;
 var camera;
+var camWorldPos;
 var renderer;
 
 var planetMat;
@@ -15,8 +16,8 @@ function webGLStart(){
 
     controls = new mouseLook(camera);
     var obj = controls.getObject();
-    obj.position.z = 5;
     scene.add(obj);
+    obj.position.z = 10;
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
@@ -40,8 +41,8 @@ function webGLStart(){
 
     // global material that all quadtrees will use
     planetMat = new THREE.MeshPhongMaterial( {
-        color: 0xaaaaaa, specular: 0xffffff, shininess: 5,
-        side: THREE.DoubleSide, vertexColors: THREE.VertexColors,
+        color: 0xaaaaaa, specular: 0xffffff, shininess: 0,
+        side: THREE.FrontSide, vertexColors: THREE.VertexColors,
         //wireframe: true
     } ); 
 
@@ -53,11 +54,15 @@ function webGLStart(){
 function render() {
     requestAnimationFrame( render );
 
-    renderer.render(scene, camera);
-
     var delta = clock.getDelta();
 
+    renderer.render(scene, camera);
+
     controls.update(delta);
+
+    camWorldPos = camera.getWorldPosition();
+
+    updatePlanet();
 
     stats.update();
 }
