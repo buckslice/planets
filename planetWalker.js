@@ -1,11 +1,18 @@
 
 
-mouseLook = function ( camera ) {
+planetWalker = function ( camera ) {
     var scope = this;
     this.enabled = false;
 
+    var leftMouseDown = false;
+    var rightMouseDown = false;
+
+    var forwardDown = false;
+    var backDown = false;
     var leftDown = false;
     var rightDown = false;
+    var upDown = false;
+    var downDown = false;
 
     var lookSpeed = 0.002;
     var moveSpeed = 0.002;
@@ -19,7 +26,7 @@ mouseLook = function ( camera ) {
     var mainObject = new THREE.Object3D();
     mainObject.add(yawObject);
 
-    var PI_2 = Math.PI / 2 - .1;
+    var PI_2 = Math.PI / 2;
 
     var blocker = document.getElementById( 'blocker' );
     var instructions = document.getElementById( 'instructions' );
@@ -92,21 +99,54 @@ mouseLook = function ( camera ) {
         if(scope.enabled == false) return;
         scope.enabled = true;
         switch(event.button){
-            case 0: leftDown = true; break;
-            case 2: rightDown = true; break;
+            case 0: leftMouseDown = true; break;
+            case 2: rightMouseDown = true; break;
         }
     }
 
     var onMouseUp = function (event){
         switch(event.button){
-            case 0: leftDown = false; break;
-            case 2: rightDown = false; break;
+            case 0: leftMouseDown = false; break;
+            case 2: rightMouseDown = false; break;
+        }
+    }
+    
+    var onKeyDown = function (event){
+        switch(event.keyCode){
+            case 17: // control key
+                planetMat.wireframe = !planetMat.wireframe; break;
+            case 70: // F
+                updating = !updating; break;
+
+            case 87: // W
+                forwardDown = true; break;
+            case 83: // S
+                backDown = true; break;
+            case 65: // A
+                leftDown = true; break;
+            case 68: // D
+                rightDown = true; break;
+            case 32: // SPACE
+                upDown = true; break;
+            case 16: // SHIFT
+                downDown = true; break;
         }
     }
 
-    var onKeyDown = function (event){
-        if(event.keyCode == 17){  // control key
-            planetMat.wireframe = !planetMat.wireframe;
+    var onKeyUp = function (event){
+        switch(event.keyCode){
+            case 87: // W
+                forwardDown = false; break;
+            case 83: // S
+                backDown = false; break;
+            case 65: // A
+                leftDown = false; break;
+            case 68: // D
+                rightDown = false; break;
+            case 32: // SPACE
+                upDown = false; break;
+            case 16: // SHIFT
+                downDown = false; break;
         }
     }
 
@@ -115,11 +155,13 @@ mouseLook = function ( camera ) {
         document.removeEventListener( 'mousedown', onMouseDown, false);
         document.removeEventListener( 'mouseup', onMouseUp, false);
         window.removeEventListener('keydown', onKeyDown, false);
+        window.removeEventListener('keyup', onKeyUp, false);
     };
     document.addEventListener( 'mousemove', onMouseMove, false );
     document.addEventListener( 'mousedown', onMouseDown, false);
     document.addEventListener( 'mouseup', onMouseUp, false);
     window.addEventListener('keydown', onKeyDown, false);
+    window.addEventListener('keyup', onKeyUp, false);
 
     this.getObject = function () {
         return mainObject;
@@ -127,24 +169,54 @@ mouseLook = function ( camera ) {
 
     var t = 0;
     this.update = function(delta){
-        var mouseClick = 0;
-        if(leftDown) mouseClick++;
-        if(rightDown) mouseClick--;
+        // rotate object to be upright in relation to gravity
+        var planetCenter = new THREE.Vector3(0,0,0);
+        var up = new THREE.Vector3().subVectors(planetCenter, mainObject.position).normalize();
+        var right = new THREE.Vector3(1,0,0);
+        right.applyQuaternion(mainObject.quaternion);
+        var forward = new THREE.Vector3().crossVectors(up, right);
+        up.negate();
+        mainObject.up.copy(up);
+        forward.add(mainObject.position);
+        mainObject.lookAt(forward);
 
+        // move forward or backward in direction of camera
+        // speed based on distance to planet
         var distanceToOrigin = mainObject.position.length();
         var speed = delta * distanceToOrigin / 5.0;
-        var dir = new THREE.Vector3(0,0,-mouseClick*speed);
-        dir.applyQuaternion(camera.getWorldQuaternion());
+
+        // old mouse look
+        //var mouseClick = 0;
+        //if(leftMouseDown) mouseClick++;
+        //if(rightMouseDown) mouseClick--;
+        //var dir = new THREE.Vector3(0,0,-mouseClick*speed);
+        //dir.applyQuaternion(camera.getWorldQuaternion());
+        //mainObject.position.add(dir);
+
+        var dir = new THREE.Vector3();
+        if(forwardDown){
+            dir.add(new THREE.Vector3(0,0,-1));
+        }
+        if(backDown){
+            dir.add(new THREE.Vector3(0,0,1));
+        }
+        if(leftDown){
+            dir.add(new THREE.Vector3(-1,0,0));
+        }
+        if(rightDown){
+            dir.add(new THREE.Vector3(1,0,0));
+        }
+        if(upDown){
+            dir.add(new THREE.Vector3(0,1,0));
+        }
+        if(downDown){
+            dir.add(new THREE.Vector3(0,-1,0));
+        }
+
+        dir.normalize();
+        dir.multiplyScalar(speed);
+        dir.applyQuaternion(yawObject.getWorldQuaternion());
         mainObject.position.add(dir);
-
-        // var up = new THREE.Vector3(0,1,0);  // normal up
-        // var newUp = new THREE.Vector3();
-        // newUp.copy(mainObject.position);
-        // newUp.normalize();
-
-        // var quat = new THREE.Quaternion().setFromUnitVectors(up, newUp);
-        // mainObject.quaternion.copy(quat);
-        //console.log(mainObject.quaternion);
         
     }
 

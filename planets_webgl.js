@@ -9,12 +9,13 @@ var planetMat;
 var controls;
 var clock;
 var stats;
+var rendererStats;
 
 function webGLStart(){
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.01, 1000000 );
 
-    controls = new mouseLook(camera);
+    controls = new planetWalker(camera);
     var obj = controls.getObject();
     scene.add(obj);
     obj.position.z = 10;
@@ -36,13 +37,19 @@ function webGLStart(){
     scene.add(new THREE.AmbientLight(0x111111));
 
     clock = new THREE.Clock();
+
     stats = new Stats();
-    document.body.appendChild( stats.dom);
+    var ctrls = document.getElementById("controls");
+    ctrls.insertBefore(stats.dom, ctrls.firstChild);
+
+    rendererStats = new THREEx.RendererStats()
+    ctrls.insertBefore(rendererStats.domElement, ctrls.firstChild);
 
     // global material that all quadtrees will use
     planetMat = new THREE.MeshPhongMaterial( {
         color: 0xaaaaaa, specular: 0xffffff, shininess: 0,
-        side: THREE.FrontSide, vertexColors: THREE.VertexColors,
+        side: THREE.DoubleSide, // THREE.FrontSide 
+        vertexColors: THREE.VertexColors,
         //wireframe: true
     } ); 
 
@@ -60,11 +67,10 @@ function render() {
 
     controls.update(delta);
 
-    camWorldPos = camera.getWorldPosition();
-
     updatePlanet();
 
     stats.update();
+    rendererStats.update(renderer);
 }
 
 function onWindowResize(){
