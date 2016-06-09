@@ -28,6 +28,10 @@ planetWalker = function ( camera ) {
 
     var PI_2 = Math.PI / 2;
 
+    /*DAVIDS CONTRIBUTION BEGINS!!! (BAND PLAYS)*/
+    camera.rotation.x = - PI_2;
+    /*DAVIDS CONTRIBUTION OVER!!! (SAD MUSIC)*/
+
     var blocker = document.getElementById( 'blocker' );
     var instructions = document.getElementById( 'instructions' );
 
