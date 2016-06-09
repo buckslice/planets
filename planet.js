@@ -1,7 +1,7 @@
 
-var radius = 2.0;
+var planetRadius = 200.0;
 var numSubdivisions = 4;
-var maxDepth = 6;
+var maxDepth = 8;
 var updating = true;
 var splitList = [];
 var roots = [];
@@ -31,10 +31,18 @@ function updatePlanet(){
     var splits = 0;
     var splitsPerFrame = 1;
     while(splits < splitsPerFrame && splitList.length > 0){
-        var qt = splitList[0];
-        splitList.shift();  // removes first
+        // find and split closest quadtree
+        var shortestDist = Number.MAX_VALUE;
+        var shortestIndex = 0;
+        for(var i = 0; i < splitList.length; ++i){
+            var dist = new THREE.Vector3().subVectors(splitList[i].center, camWorldPos).lengthSq();
+            if(dist < shortestDist){
+                shortestDist = dist;
+                shortestIndex = i;
+            }
+        }
+        var qt = splitList.splice(shortestIndex, 1)[0];
         if(qt == null){
-            //console.log("null found!");
             continue;
         }
         qt.onSplitList = false;
@@ -88,7 +96,7 @@ function initPlanet() {
         // get random spherical coordinate
         var theta = Math.random() * Math.PI * 2;
         var phi = Math.acos(2 * Math.random() - 1);
-        var r = Math.random() * 500 + 500;
+        var r = Math.random() * 50000 + 50000;
         // convert to cartesian
         var x = r * Math.cos(theta) * Math.sin(phi);
         var y = r * Math.sin(theta) * Math.sin(phi);

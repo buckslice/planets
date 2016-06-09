@@ -13,12 +13,12 @@ var rendererStats;
 
 function webGLStart(){
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.01, 1000000 );
+    camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000000 );
 
     controls = new planetWalker(camera);
     var obj = controls.getObject();
     scene.add(obj);
-    obj.position.z = 10;
+    obj.position.z = 2000;
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
@@ -30,8 +30,12 @@ function webGLStart(){
 
     // add a point light for sun
     var sun = new THREE.PointLight(0xffffff, 0.8, 0);
-    sun.position.set(10,10,10);
+    sun.position.set(10000,10000,10000);
     scene.add(sun);
+
+    var moon = new THREE.PointLight(0x555577, 0.8, 0);
+    moon.position.set(-10000,-10000,-10000);
+    scene.add(moon);
 
     // add ambient light
     scene.add(new THREE.AmbientLight(0x111111));

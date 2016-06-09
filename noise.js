@@ -255,6 +255,21 @@
     return total / maxAmplitude * 1.25; // *1.25 to try to normalize back around -1 to 1
   };
 
+  module.ridged3 = function(x, y, z, octaves, frequency, persistence = 0.5, lacunarity = 2.0){
+    var total = 0;
+    var amplitude = 1;
+
+    for(var i = 0; i < octaves; ++i){
+      var noise = this.simplex3(x * frequency, y * frequency, z * frequency);
+      total += (1.0 - Math.abs(noise)) * amplitude;
+
+      amplitude *= persistence;
+      frequency *= lacunarity;
+    }
+
+    return total - 1.0;
+  };
+
 
 
   // if x <= low return 0
@@ -266,10 +281,6 @@
 
   module.cubic = function(x){
     return x*x*x;
-  }
-
-  module.lerp = function(a,b,t){
-    return a + (b-a)*t;
   }
 
   // ##### Perlin noise stuff

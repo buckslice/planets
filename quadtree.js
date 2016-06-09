@@ -7,8 +7,9 @@ class QuadTree {
         this.hasChildren = false;
         this.verts = [];
         this.onSplitList = false;
-        this.splitLevel = Math.pow(2, maxDepth - this.depth + 4) / Math.pow(2,maxDepth);
+        this.splitLevel = Math.pow(1.9, -this.depth*1.2 + 12);
         this.splitLevel *= this.splitLevel;
+        this.numFloats = 2 * Math.pow(4, numSubdivisions) * 3 * 3;
     }
 
     subdivide(){
@@ -37,16 +38,12 @@ class QuadTree {
         this.verts = newVerts;
     }
 
-
     buildMesh() {
         var geometry = new THREE.BufferGeometry();
 
-        var triangles = 2 * Math.pow(4, numSubdivisions);
-
-        var numFloats = triangles * 3 * 3;
-        var positions = new Float32Array( numFloats);
-        var normals = new Float32Array( numFloats );
-        var colors = new Float32Array( numFloats );
+        var positions = new Float32Array( this.numFloats );
+        var normals = new Float32Array( this.numFloats );
+        var colors = new Float32Array( this.numFloats );
 
         var norm = new THREE.Vector3();
         var norm2 = new THREE.Vector3();
@@ -61,10 +58,23 @@ class QuadTree {
                     .10,new THREE.Color(0.0,0.0,1.0),   // ocean
                     -.6,new THREE.Color(0.0,0.0,0.3)];  // deep ocean
 
+        var noises = {};    // map for already generated noise values
+
         var len = this.verts.length;
         for(var i = 0; i < len; ++i){
             var v = toSphere(this.verts[i]);
-            var n = noise.fractal3(v.x,v.y,v.z, 7, 1.5);
+            var n = 0.0;
+            var key = v.x.toPrecision(6) + ',' + v.y.toPrecision(6) + ',' + v.z.toPrecision(6);
+            var cachedNoise = noises[key];
+            if(cachedNoise){
+                n = cachedNoise;
+            }else{
+                n += noise.fractal3(v.x,v.y,v.z, 7, 2);       // continent noise
+                n += noise.ridged3(v.x,v.y,v.z, 5, 6) * 0.5;     // add interesting ridges
+                n += noise.fractal3(v.x,v.y,v.z, 3, 150) * .02;  // general roughing up
+                noises[key] = n;
+            }
+
             // blend color based on noise and grad
             for(var q = 0; q < grad.length; q+=2){
                 if(n > grad[q]){
@@ -109,9 +119,9 @@ class QuadTree {
             }
 
             // scale position a bit by the noise
-            v.addScaledVector(v, n * 0.1);
+            v.addScaledVector(v, n * 0.03);
             // scale vertex up based on radius of planet
-            v.multiplyScalar(radius);
+            v.multiplyScalar(planetRadius);
 
             positions[j] = v.x;
             positions[j+1] = v.y;
@@ -123,7 +133,7 @@ class QuadTree {
         }
 
         // calculate normals
-        for(var i = 0; i < numFloats; i+=9){
+        for(var i = 0; i < this.numFloats; i+=9){
             var v1 = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]);
             var v2 = new THREE.Vector3(positions[i+3], positions[i+4], positions[i+5]);
             var v3 = new THREE.Vector3(positions[i+6], positions[i+7], positions[i+8]);
@@ -152,6 +162,7 @@ class QuadTree {
         geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
 
         geometry.computeBoundingBox();
+
         this.center = new THREE.Vector3();
         this.center.subVectors(geometry.boundingBox.max, geometry.boundingBox.min);
         this.center.multiplyScalar(0.5).add(geometry.boundingBox.min);

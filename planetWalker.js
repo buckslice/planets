@@ -182,7 +182,10 @@ planetWalker = function ( camera ) {
 
         // move forward or backward in direction of camera
         // speed based on distance to planet
-        var distanceToOrigin = mainObject.position.length();
+        var distanceToOrigin = mainObject.position.length()-planetRadius/1.25;
+        if(distanceToOrigin < .01){
+            distanceToOrigin = .01;
+        }
         var speed = delta * distanceToOrigin / 5.0;
 
         // old mouse look
