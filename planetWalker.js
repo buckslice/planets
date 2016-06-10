@@ -117,7 +117,7 @@ planetWalker = function ( camera ) {
     
     var onKeyDown = function (event){
         switch(event.keyCode){
-            case 17: // control key
+            case 86: // V
                 planetMat.wireframe = !planetMat.wireframe; break;
             case 70: // F
                 updating = !updating; break;
@@ -135,7 +135,7 @@ planetWalker = function ( camera ) {
                 leftDown = true; break;
             case 68: // D
                 rightDown = true; break;
-            case 32: // SPACE
+            case 17: // control key
                 upDown = true; break;
             case 16: // SHIFT
                 downDown = true; break;
@@ -152,7 +152,7 @@ planetWalker = function ( camera ) {
                 leftDown = false; break;
             case 68: // D
                 rightDown = false; break;
-            case 32: // SPACE
+            case 17: // control key
                 upDown = false; break;
             case 16: // SHIFT
                 downDown = false; break;
