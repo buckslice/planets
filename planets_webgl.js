@@ -18,6 +18,7 @@ function webGLStart(){
     controls = new planetWalker(camera);
     var obj = controls.getObject();
     scene.add(obj);
+    //obj.position.z = 350;
     obj.position.z = 2000;
 
     renderer = new THREE.WebGLRenderer();
@@ -51,13 +52,14 @@ function webGLStart(){
 
     // global material that all quadtrees will use
     planetMat = new THREE.MeshPhongMaterial( {
-        color: 0xaaaaaa, specular: 0xffffff, shininess: 0,
+        color: 0xaaaaaa, specular: 0xffffff, shininess: 0.0,
         side: THREE.DoubleSide, // THREE.FrontSide 
         vertexColors: THREE.VertexColors,
         //wireframe: true
     } ); 
 
-    initPlanet();
+    initStars();
+    resetPlanet(true);
 
     render();
 }

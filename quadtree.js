@@ -50,13 +50,22 @@ class QuadTree {
         var color = new THREE.Color();
         var color2 = new THREE.Color();
 
-        var grad = [.70,new THREE.Color(1.0,1.0,1.0),   // peaks
+        var grad = [];
+        if(planetType){
+            grad = [.70,new THREE.Color(1.0,1.0,1.0),   // peaks
                     .60,new THREE.Color(0.4,0.4,0.3),   // mountains
                     .35,new THREE.Color(0.0,1.0,0.0),   // grass
                     .27,new THREE.Color(0.8,0.8,0.5),   // coast
                     .26,new THREE.Color(0.0,0.9,0.9),   // shallows
                     .10,new THREE.Color(0.0,0.0,1.0),   // ocean
                     -.6,new THREE.Color(0.0,0.0,0.3)];  // deep ocean
+        }else{
+            grad = [0.9, new THREE.Color(0.75, 0.2, 0.1),
+                    0.5, new THREE.Color(0.7, 0.3, 0.2),
+                    0.1, new THREE.Color(0.8, 0.6, 0.1),
+                    -.4, new THREE.Color(0.4, 0.1, 0.5),
+                    -.6, new THREE.Color(0.2, 0.0, 0.3)];
+        }
 
         var noises = {};    // map for already generated noise values
 
@@ -69,9 +78,15 @@ class QuadTree {
             if(cachedNoise){
                 n = cachedNoise;
             }else{
-                n += noise.fractal3(v.x,v.y,v.z, 7, 2);       // continent noise
-                n += noise.ridged3(v.x,v.y,v.z, 5, 6) * 0.5;     // add interesting ridges
-                n += noise.fractal3(v.x,v.y,v.z, 3, 150) * .02;  // general roughing up
+                if(planetType){
+                    n += noise.fractal3(v.x,v.y,v.z, 7, 2);       // continent noise
+                    n += noise.ridged3(v.x,v.y,v.z, 5, 4) * 0.5;     // add interesting ridges
+                    n += noise.fractal3(v.x,v.y,v.z, 3, 150) * .02;  // general roughing up
+                }else{
+                    n += noise.ridged3(v.x,v.y,v.z, 7, 1.5);
+                    n += noise.fractal3(v.x,v.y,v.z, 5, 7)*0.5;
+                    n += noise.fractal3(v.x,v.y,v.z, 3, 150) * .02;
+                }
                 noises[key] = n;
             }
 
@@ -114,8 +129,14 @@ class QuadTree {
             // make land flat to look like ocean
             //var t = noise.cubic(noise.cblend(n,.27,.35));
             //n = noise.lerp(.27, n-.08, t);
-            if(n < .27){
-                n = .27;
+            if(planetType){
+                if(n < .27){
+                    n = .27;
+                }
+            }else{
+                // if(n > 1.0){
+                //     n = 1.0;
+                // }
             }
 
             // scale position a bit by the noise
@@ -228,12 +249,26 @@ class QuadTree {
 
     merge() {
         for(var i = 0; i < 4; ++i){
-            scene.remove(this.children[i].mesh);
-            this.children[i].mesh.geometry.dispose();
+            this.children[i].destroy();
             delete(this.children[i]);
         }
         this.children = [];
         this.hasChildren = false;
         this.mesh.visible = true;
+    }
+
+    destroy(){
+        scene.remove(this.mesh);
+        this.mesh.geometry.dispose();
+    }
+
+    recursiveDestroy(){
+        if(this.hasChildren){
+            for(var i = 0; i < 4; ++i){
+                this.children[i].recursiveDestroy();
+                delete(this.children[i]);
+            }
+        }
+        this.destroy();
     }
 }

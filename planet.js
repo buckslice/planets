@@ -5,6 +5,7 @@ var maxDepth = 8;
 var updating = true;
 var splitList = [];
 var roots = [];
+var planetType = true;  // true is earthlike, false is 
 
 //http://catlikecoding.com/unity/tutorials/cube-sphere/
 function toSphere(v){
@@ -53,9 +54,22 @@ function updatePlanet(){
     }
 }
 
-function initPlanet() {
-    noise.seed(Math.random());
+function resetPlanet(newSeed){
+    if(newSeed){
+        noise.seed(Math.random());
+    }
+    if(roots.length == 6){
+       for(var i = 0; i < 6 ; ++i){
+            roots[i].recursiveDestroy();
+            delete(roots[i]);
+        }
+        roots = [];
+    }
+    splitList = [];
+    initPlanet();
+}
 
+function initPlanet() {
     // 0 -- 3
     // |    |   tl bl br tr
     // 1 -- 2
@@ -84,6 +98,9 @@ function initPlanet() {
         roots.push(qt);
     }
 
+}
+
+function initStars(){
     // generate star field
     var numStars = 10000;
     var stargeo = new THREE.BufferGeometry();

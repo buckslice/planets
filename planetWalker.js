@@ -121,7 +121,12 @@ planetWalker = function ( camera ) {
                 planetMat.wireframe = !planetMat.wireframe; break;
             case 70: // F
                 updating = !updating; break;
-
+            case 71: // G
+                planetType = !planetType; resetPlanet(true); break;
+            case 82: // R
+                resetPlanet(true); break;
+            case 84: // T
+                resetPlanet(false); break;
             case 87: // W
                 forwardDown = true; break;
             case 83: // S
