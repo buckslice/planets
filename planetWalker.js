@@ -135,7 +135,7 @@ planetWalker = function ( camera ) {
                 leftDown = true; break;
             case 68: // D
                 rightDown = true; break;
-            case 17: // control key
+            case 90: // Z
                 upDown = true; break;
             case 16: // SHIFT
                 downDown = true; break;
@@ -152,7 +152,7 @@ planetWalker = function ( camera ) {
                 leftDown = false; break;
             case 68: // D
                 rightDown = false; break;
-            case 17: // control key
+            case 90: // Z
                 upDown = false; break;
             case 16: // SHIFT
                 downDown = false; break;
